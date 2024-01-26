@@ -79,13 +79,12 @@ async def process_article(session, morph, charged_words, url, results):
                 words_count = len(words)
                 score = calculate_jaundice_rate(words, charged_words)
 
-    print('URL:', url)
-    print('Статус:', status)
-    print('Рейтинг:', score)
-    print('Слов в статье:', words_count)
+    logging.debug(f'URL: {url}')
+    logging.debug(f'Статус: {status}')
+    logging.debug(f'Рейтинг: {score}')
+    logging.debug(f'Слов в статье: {words_count}')
     if time_spent:
         logging.debug(f"Анализ закончен за {time_spent()} сек")
-    print('')
     result = {'status': status, 'url': url, 'score': score, 'words_count': words_count}
     results.append(result)
 
@@ -102,9 +101,8 @@ def load_charged_words():
     return charged_words
 
 
-async def main(urls):
+async def process_articles(urls, morph):
     charged_words = load_charged_words()
-    morph = pymorphy2.MorphAnalyzer()
     results = []
 
     async with aiohttp.ClientSession() as session:
@@ -116,7 +114,8 @@ async def main(urls):
 
 
 def test_process_article():
-    results = asyncio.run(main(TEST_ARTICLES))
+    morph = pymorphy2.MorphAnalyzer()
+    results = asyncio.run(process_articles(TEST_ARTICLES, morph))
     assert results == [{'score': None, 'status': ProcessingStatus.PARSING_ERROR,
                         'url': 'https://lenta.ru/brief/2021/08/26/afg_terror/', 'words_count': None},
                        {'score': None, 'status': ProcessingStatus.FETCH_ERROR,
@@ -126,7 +125,7 @@ def test_process_article():
 
     urls = ['https://inosmi.ru/20240120/neyroseti-267505713.html']
     global ANALYSIS_TIMEOUT
-    ANALYSIS_TIMEOUT = 0.1
-    results = asyncio.run(main(urls))
+    ANALYSIS_TIMEOUT = 0.01
+    results = asyncio.run(process_articles(urls, morph))
     assert results == [{'score': None, 'status': ProcessingStatus.TIMEOUT,
                         'url': 'https://inosmi.ru/20240120/neyroseti-267505713.html', 'words_count': None}]
